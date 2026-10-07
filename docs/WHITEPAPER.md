@@ -497,8 +497,8 @@ def get_time_aged_multiplier(device_arch: str, chain_age_years: float) -> float:
     Calculate time-decayed antiquity multiplier.
     
     - Year 0: Full multiplier (G4 = 2.5×)
-    - Year 10: Approaches modern baseline (1.0×)
-    - Year 16.67: Vintage bonus fully decayed
+    - Year 5: Vintage bonus 75% decayed (G4 = 1.375×)
+    - Year 6.67: Vintage bonus fully decayed (back to 1.0× baseline)
     """
     base_multiplier = ANTIQUITY_MULTIPLIERS.get(device_arch.lower(), 1.0)
     
@@ -615,7 +615,7 @@ RustChain uses a minimal fee structure to prevent spam while maintaining accessi
 ### 6.5 Vesting Rules
 
 - Premine wallets: 1-year unlock delay (on-chain governance enforced)
-- Foundation/Dev funds: Cannot sell on DEX prior to Epoch 1
+- Foundation/Dev funds: Locked prior to Epoch 1
 - Community vault: Released through governance proposals
 
 ---
@@ -764,7 +764,6 @@ Security audit conducted January 2026:
 
 ### 9.1 Near-Term Roadmap (2026)
 
-- **DEX Listing**: RTC/ERG trading pair on ErgoDEX
 - **NFT Badge System**: Soulbound achievement badges
   - "Bondi G3 Flamekeeper" — Mine on PowerPC G3
   - "QuickBasic Listener" — Mine from DOS machine

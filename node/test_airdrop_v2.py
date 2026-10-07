@@ -299,6 +299,67 @@ class TestEligibilityChecks(unittest.TestCase):
         self.assertIn("ownership verification required", message)
         self.assertIsNone(claim)
 
+    def test_concurrent_claim_same_username_no_double_allocate(self):
+        """Regression #8245: concurrent claims for the SAME github_username
+        with DIFFERENT wallets must not both insert (double-allocate).
+
+        The dedup rule is `github_username OR wallet_address`, but the schema's
+        UNIQUE constraint only covers the composite (github_username,
+        wallet_address, chain). So two racing claims with the same username and
+        different wallets could both pass the early SELECT and both INSERT.
+        The fix serializes the insert via BEGIN IMMEDIATE plus an in-transaction
+        re-check. We exercise the race with real threads against a file-backed
+        DB (the :memory: path shares a single connection and cannot race).
+        """
+        import tempfile
+        import threading
+
+        wallet_a = "RTC1234567890123456789012345678901234567890"
+        wallet_b = "RTC2234567890123456789012345678901234567890"
+
+        for _ in range(10):
+            tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+            tmp.close()
+            db_path = tmp.name
+            try:
+                airdrop = AirdropV2(db_path=db_path)
+                username = "raceuser"
+                results = []
+                barrier = threading.Barrier(2)
+
+                def worker(wallet):
+                    try:
+                        barrier.wait()
+                        ok, _, _ = airdrop.claim_airdrop(
+                            github_username=username,
+                            wallet_address=wallet,
+                            chain="base",
+                            tier="contributor",
+                            skip_antisybil=True,
+                        )
+                        results.append(ok)
+                    except Exception as e:  # pragma: no cover
+                        results.append(f"exc:{e}")
+
+                t1 = threading.Thread(target=worker, args=(wallet_a,))
+                t2 = threading.Thread(target=worker, args=(wallet_b,))
+                t1.start()
+                t2.start()
+                t1.join(timeout=10)
+                t2.join(timeout=10)
+
+                # Exactly one of the two concurrent claims may succeed; never both.
+                self.assertEqual(
+                    sum(1 for r in results if r is True),
+                    1,
+                    f"expected exactly 1 successful claim, got {results}",
+                )
+            finally:
+                try:
+                    os.remove(db_path)
+                except OSError:
+                    pass
+
     def test_duplicate_github_with_different_wallet_rejected(self):
         """A GitHub account cannot claim again with a different wallet."""
         success, _, _ = self.airdrop.claim_airdrop(
@@ -666,7 +727,7 @@ class TestAllocationTracking(unittest.TestCase):
 
 
 class TestAirdropBridgeRoutes(unittest.TestCase):
-    """Test Flask bridge route authorization."""
+    """Bridge lock routes after the wRTC bridge was disabled."""
 
     def setUp(self):
         self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix=".db")
@@ -687,6 +748,22 @@ class TestAirdropBridgeRoutes(unittest.TestCase):
         os.unlink(self.temp_db.name)
 
     def _create_lock(self):
+        success, message, lock = self.airdrop.create_bridge_lock(
+            "RTC1234567890123456789012345678901234567890",
+            "0x1234567890123456789012345678901234567890",
+            "rustchain",
+            "base",
+            100 * 1_000_000,
+        )
+        self.assertTrue(success, message)
+        return lock.lock_id
+
+    def _assert_bridge_disabled(self, response):
+        self.assertEqual(response.status_code, 410)
+        self.assertEqual(response.headers["Cache-Control"], "no-store")
+        self.assertEqual(response.get_json()["code"], "WRTC_BRIDGE_DISABLED")
+
+    def test_lock_route_is_retired(self):
         response = self.client.post(
             "/api/bridge/lock",
             headers=ADMIN_HEADERS,
@@ -698,70 +775,39 @@ class TestAirdropBridgeRoutes(unittest.TestCase):
                 "amount_wrtc": 100,
             },
         )
-        self.assertEqual(response.status_code, 200)
-        return response.get_json()["lock"]["lock_id"]
 
-    def test_confirm_route_requires_admin_key(self):
+        self._assert_bridge_disabled(response)
+        self.assertEqual(self.airdrop.get_stats()["pending_bridge_locks"], 0)
+
+    def test_confirm_and_release_routes_are_retired_even_with_admin_key(self):
         lock_id = self._create_lock()
 
-        response = self.client.post(
-            f"/api/bridge/lock/{lock_id}/confirm",
-            json={"source_tx": "attacker-source-tx"},
-        )
+        for headers in ({}, ADMIN_HEADERS):
+            confirm = self.client.post(
+                f"/api/bridge/lock/{lock_id}/confirm",
+                headers=headers,
+                json={"source_tx": "operator-source-tx"},
+            )
+            release = self.client.post(
+                f"/api/bridge/lock/{lock_id}/release",
+                headers=headers,
+                json={"dest_tx": "operator-dest-tx"},
+            )
+            self._assert_bridge_disabled(confirm)
+            self._assert_bridge_disabled(release)
 
-        self.assertEqual(response.status_code, 401)
         lock = self.airdrop.get_lock(lock_id)
         self.assertEqual(lock.status, "pending")
         self.assertIsNone(lock.source_tx)
-
-    def test_release_route_requires_admin_key(self):
-        lock_id = self._create_lock()
-        success, _ = self.airdrop.confirm_bridge_lock(lock_id, "operator-source-tx")
-        self.assertTrue(success)
-
-        response = self.client.post(
-            f"/api/bridge/lock/{lock_id}/release",
-            json={"dest_tx": "attacker-dest-tx"},
-        )
-
-        self.assertEqual(response.status_code, 401)
-        lock = self.airdrop.get_lock(lock_id)
-        self.assertEqual(lock.status, "locked")
         self.assertIsNone(lock.dest_tx)
 
-    def test_confirm_and_release_accept_admin_key(self):
+    def test_lock_status_route_stays_readable(self):
         lock_id = self._create_lock()
 
-        confirm = self.client.post(
-            f"/api/bridge/lock/{lock_id}/confirm",
-            headers=ADMIN_HEADERS,
-            json={"source_tx": "operator-source-tx"},
-        )
-        self.assertEqual(confirm.status_code, 200)
+        response = self.client.get(f"/api/bridge/lock/{lock_id}", headers=ADMIN_HEADERS)
 
-        release = self.client.post(
-            f"/api/bridge/lock/{lock_id}/release",
-            headers=ADMIN_HEADERS,
-            json={"dest_tx": "operator-dest-tx"},
-        )
-        self.assertEqual(release.status_code, 200)
-
-        lock = self.airdrop.get_lock(lock_id)
-        self.assertEqual(lock.status, "released")
-        self.assertEqual(lock.source_tx, "operator-source-tx")
-        self.assertEqual(lock.dest_tx, "operator-dest-tx")
-
-    def test_confirm_route_fails_closed_without_admin_key(self):
-        lock_id = self._create_lock()
-        os.environ.pop("RC_ADMIN_KEY", None)
-
-        response = self.client.post(
-            f"/api/bridge/lock/{lock_id}/confirm",
-            headers=ADMIN_HEADERS,
-            json={"source_tx": "operator-source-tx"},
-        )
-
-        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["lock"]["status"], "pending")
 
 
 class TestStatistics(unittest.TestCase):

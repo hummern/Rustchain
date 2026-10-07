@@ -493,13 +493,17 @@ def get_time_aged_multiplier(device_arch: str, chain_age_years: float) -> float:
     计算时间衰减的古老性乘数。
     
     - 第 0 年：完整乘数（G4 = 2.5×）
-    - 第 10 年：接近现代基线（1.0×）
-    - 第 16.67 年：复古奖励完全衰减
+    - 第 5 年：复古奖励衰减 75%（G4 = 1.375×）
+    - 第 6.67 年：复古奖励完全衰减（回落至 1.0× 基线）
     """
     base_multiplier = ANTIQUITY_MULTIPLIERS.get(device_arch.lower(), 1.0)
     
-    # 现代硬件不衰减
-    if base_multiplier <= 1.0:
+    # 惩罚性乘数（低于 1.0）属于反农场惩罚——按原值返回
+    if base_multiplier < 1.0:
+        return base_multiplier
+
+    # 基线硬件（正好 1.0）没有可衰减的复古奖励
+    if base_multiplier == 1.0:
         return 1.0
     
     # 计算衰减奖励
@@ -606,7 +610,7 @@ RustChain 使用最低费用结构来防止垃圾邮件，同时保持可访问�
 ### 6.5 归属规则
 
 - 预挖钱包：1 年解锁延迟（链上治理执行）
-- 基金会/开发资金：在 Epoch 1 之前不能在 DEX 上出售
+- 基金会/开发资金：在 Epoch 1 之前锁定
 - 社区金库：通过治理提案释放
 
 ---
@@ -755,7 +759,6 @@ def compute_commitment(miners: List[Dict]) -> str:
 
 ### 9.1 近期路线图（2026）
 
-- **DEX 上市**：ErgoDEX 上的 RTC/ERG 交易对
 - **NFT 徽章系统**：灵魂绑定成就徽章
   - "Bondi G3 Flamekeeper" — 在 PowerPC G3 上挖矿
   - "QuickBasic Listener" — 在 DOS 机器上挖矿
