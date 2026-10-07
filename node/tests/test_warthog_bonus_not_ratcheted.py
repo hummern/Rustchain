@@ -65,7 +65,7 @@ def _load_integrated_node(db_path: Path, warthog_verified: bool):
     module._check_oui_gate = lambda macs: (True, {"ok": True})
     module.wallet_review_gate_response = lambda miner: None
     module.record_macs = lambda *args, **kwargs: None
-    module._check_welcome_bonus = lambda miner: None
+    module._check_welcome_bonus = lambda *args, **kwargs: None
     module.current_slot = lambda: 12345
     module.slot_to_epoch = lambda slot: EPOCH
     module.validate_fingerprint_data = lambda fingerprint, claimed_device=None: (True, "ok")
@@ -186,8 +186,12 @@ def test_failed_warthog_verification_clears_stale_bonus(tmp_path):
     assert _stored_bonus(db_path) == 1.0, "a rejected proof must not keep the bonus"
 
 
-def test_verified_warthog_proof_still_records_bonus(tmp_path):
-    """Guard against over-reach: a genuine proof must still earn the bonus."""
+def test_verified_warthog_proof_still_records_bonus(tmp_path, monkeypatch):
+    """Guard against over-reach: a genuine proof must still earn the bonus.
+
+    The bonus is opt-in (RC_WARTHOG_BONUS_ENABLED); this asserts the enabled path.
+    """
+    monkeypatch.setenv("RC_WARTHOG_BONUS_ENABLED", "1")
     db_path = tmp_path / "warthog_ok.sqlite3"
     node = _load_integrated_node(db_path, warthog_verified=True)
     _prepare_db(node, db_path, seeded_bonus=1.0)

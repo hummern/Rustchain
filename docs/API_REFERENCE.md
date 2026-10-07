@@ -463,32 +463,6 @@ curl -fsS -X POST https://rustchain.org/wallet/transfer/signed \
 
 ---
 
-### GET /wallet/swap-info
-
-Get USDC/wRTC swap guidance (premium x402 endpoint, currently free in beta).
-
-**Method:** `GET`
-**Path:** `/wallet/swap-info`
-**Auth:** None (x402 payment protocol, free in beta)
-
-**cURL:**
-```bash
-curl -fsS https://rustchain.org/wallet/swap-info | jq .
-```
-
-**Response (200 OK):**
-```json
-{
-  "rtc_price_usd": 0.15,
-  "wrtc_solana_mint": "12TAdKXxcGf6oCv4rqDz2NkgxjyHq6HQKoxKZYGf5i4X",
-  "wrtc_base_contract": "0x5683C10596AaA09AD7F4eF13CAB94b9b74A669c6",
-  "raydium_pool": "8CF2Q8nSCxRacDShbtF86XTSrYjueBMKmfdR3MLdnYzb",
-  "bridge_url": "https://bottube.ai/bridge"
-}
-```
-
----
-
 ### GET /explorer
 
 Web UI for browsing blocks and transactions. Returns HTML.
@@ -646,6 +620,8 @@ curl -fsS https://rustchain.org/api/settlement/75 | jq .
 The Bridge API manages cross-chain transfers between RustChain and external chains (Solana, Ergo, Base). Follows RIP-0305 Track C.
 
 ### POST /api/bridge/initiate
+
+> **Retired:** the wRTC bridge is disabled. RTC is earned for contributions and spent on services in the RustChain ecosystem; there is no off-ramp. This route answers **410 Gone** with `code: WRTC_BRIDGE_DISABLED`; the description below is kept as a historical record.
 
 Initiate a cross-chain bridge transfer (deposit or withdraw). RustChain-origin
 deposits are operator-assisted/admin-authenticated because they lock native RTC
@@ -868,6 +844,8 @@ curl -fsS -X POST https://rustchain.org/api/bridge/void \
 ---
 
 ### POST /api/bridge/update-external
+
+> **Retired:** the wRTC bridge is disabled. RTC is earned for contributions and spent on services in the RustChain ecosystem; there is no off-ramp. This route answers **410 Gone** with `code: WRTC_BRIDGE_DISABLED`.
 
 Update external transaction confirmation data. **Bridge service callback only.**
 

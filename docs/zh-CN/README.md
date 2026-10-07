@@ -20,7 +20,7 @@
 
 *你的 PowerPC G4 比现代 Threadripper 赚得更多。这就是重点。*
 
-[官网](https://rustchain.org) • [实时浏览器](https://rustchain.org/explorer) • [兑换 wRTC](https://raydium.io/swap/?inputMint=sol&outputMint=12TAdKXxcGf6oCv4rqDz2NkgxjyHq6HQKoxKZYGf5i4X) • [DexScreener](https://dexscreener.com/solana/8CF2Q8nSCxRacDShbtF86XTSrYjueBMKmfdR3MLdnYzb) • [wRTC 快速入门](../wrtc.md) • [wRTC 教程](../WRTC_ONBOARDING_TUTORIAL.md) • [Grokipedia 参考](https://grokipedia.com/search?q=RustChain) • [白皮书](../RustChain_Whitepaper_Flameholder_v0.97.pdf) • [快速开始](#-快速开始) • [工作原理](#-古董证明如何工作)
+[官网](https://rustchain.org) • [实时浏览器](https://rustchain.org/explorer) • [Grokipedia 参考](https://grokipedia.com/search?q=RustChain) • [白皮书](../RustChain_Whitepaper_Flameholder_v0.97.pdf) • [快速开始](#-快速开始) • [工作原理](#-古董证明如何工作)
 
 </div>
 
@@ -36,6 +36,16 @@
 >
 > 对于中国的技术社区，RustChain意味着：你抽屉里那台吃灰的旧MacBook、你大学时代的ThinkPad、你修好但不知道拿来干嘛的老式台式机——它们终于有了被认真对待的理由。
 
+## 面向中文社区的市场语境
+
+中国的硬件文化并不只发生在新品发布会里，也发生在闲鱼、转转、华强北、电脑城维修柜台、B站装机区和贴吧的"垃圾佬"经验帖里。这里有完整的二手流通、拆机维修、零件替换和低成本再利用生态：一台企业淘汰的工作站、一块十年前的主板、一台屏幕有划痕但还能稳定运行的旧笔记本，往往不会马上进入回收站，而是继续在学生、开发者、创客和维修爱好者手里流动。RustChain 的中文叙事应该从这里开始：闲置硬件不是单纯的电子垃圾，而是仍然能计算、能被验证、能重新接入网络的物理资产。
+
+Proof of Antiquity 可以被理解为一种"硬件年代证明"或"机器时间指纹"。它奖励的不是谁买了最新显卡，也不是谁租了最多云服务器，而是谁能让真实机器长期存活并稳定参与网络。对中文用户来说，这一点尤其重要：它把二手市场里已经存在的维修能力、淘机经验和硬件鉴别能力，转化为更公平的链上参与门槛。老机器的价值不再只由成色、跑分和转卖价格决定，也由它能否证明自己是一台真实、独立、持续运行的设备决定。
+
+这也解释了 RustChain 为什么强调反虚拟机、反容器农场、反批量 Sybil。中文社区熟悉"工作室"批量化刷量的玩法，如果一个网络只奖励可复制的软件身份，最后往往会被脚本、云机和短期投机挤占。RustChain 把验证锚点放回物理世界，让时钟漂移、缓存时序、热曲线和指令抖动成为机器自己的签名；这不是为了制造技术神秘感，而是为了让一台真实旧电脑的诚实运行，能够和一排临时云实例区分开来。
+
+因此，RustChain 更适合被介绍为"让闲置硬件继续有用的 DePIN 网络"，而不是暴富式矿机项目。参与者仍然需要考虑电费、散热、硬件健康、网络连接和维护成本；项目也不应该承诺固定收益。但在电子产品快速更新、可用设备被过早淘汰的现实里，它提供了一个更克制也更有中文市场共鸣的方向：把旧机器从一次性残值，变成可验证的长期参与身份。
+
 ---
 
 ## 文档导航
@@ -47,7 +57,6 @@
 | [硬件列表](#-支持的硬件) | 15+架构支持 |
 | [白皮书](../RustChain_Whitepaper_Flameholder_v0.97.pdf) | 技术深度解析 |
 | [API 参考](./API.md) | REST API 文档 |
-| [wRTC 教程](../WRTC_ONBOARDING_TUTORIAL.md) | 跨链桥接指南 |
 | [贡献指南](../../CONTRIBUTING.md) | 参与开发 |
 
 ---
@@ -59,7 +68,6 @@
 - `GET https://bottube.ai/api/premium/videos` - 批量视频导出（BoTTube）
 - `GET https://bottube.ai/api/premium/analytics/<agent>` - 深度 Agent 分析（BoTTube）
 - `GET /api/premium/reputation` - 完整声誉导出（Beacon Atlas）
-- `GET /wallet/swap-info` - USDC/wRTC 兑换指引（RustChain）
 
 ---
 
@@ -272,13 +280,11 @@ journalctl --user -u rustchain-miner -f
 
 ---
 
-## 🌉 wRTC 跨链桥
+## 🌉 wRTC
 
-RustChain通过wRTC（wrapped RTC）连接到Solana生态：
-
-- **wRTC** = Solana上的SPL代币，1:1锚定RTC
-- **交易**：[Raydium](https://raydium.io/swap/?inputMint=sol&outputMint=12TAdKXxcGf6oCv4rqDz2NkgxjyHq6HQKoxKZYGf5i4X) | [DexScreener](https://dexscreener.com/solana/8CF2Q8nSCxRacDShbtF86XTSrYjueBMKmfdR3MLdnYzb)
-- **教程**：[wRTC入门指南](../WRTC_ONBOARDING_TUTORIAL.md)
+> wRTC 跨链桥已停用。RTC 通过贡献获得，并用于生态系统内的服务；没有出金通道（off-ramp）。
+>
+> The wRTC bridge is disabled. RTC is earned for contributions and spent on services in the ecosystem; there is no off-ramp. See [Earn & Spend RTC](https://github.com/Scottcjn/rustchain-bounties/blob/main/docs/EARN_AND_SPEND.md).
 
 ---
 
@@ -287,7 +293,6 @@ RustChain通过wRTC（wrapped RTC）连接到Solana生态：
 RustChain不只是一个挖矿网络——它是AI Agent的经济基础设施：
 
 - **硬件验证Agent**：自动审核新矿机的6项检查
-- **交易Agent**：代表用户执行跨链交易
 - **社交Agent**：在BoTTube（RustChain的AI原生社交平台）上发布内容
 - **分析Agent**：监控网络健康和矿机性能
 

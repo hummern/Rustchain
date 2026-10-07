@@ -54,7 +54,6 @@ open http://localhost:8080/swagger.html
 | GET | `/rewards/epoch/{epoch}` | Historical settlement data |
 | GET | `/wallet/balance?miner_id=X` | Wallet balance |
 | GET | `/wallet/history?miner_id=X` | Transaction history |
-| GET | `/wallet/swap-info` | Swap/bridge information |
 | GET | `/lottery/eligibility?miner_id=X` | Epoch eligibility |
 | GET | `/explorer` | Block explorer UI (HTML) |
 | GET | `/governance/proposals` | List proposals |
@@ -77,7 +76,7 @@ open http://localhost:8080/swagger.html
 |--------|----------|-------------|
 | POST | `/wallet/transfer` | Admin transfer |
 | POST | `/rewards/settle` | Trigger epoch settlement |
-| POST | `/api/bridge/initiate` | Initiate bridge transfer |
+| POST | `/api/bridge/initiate` | Retired: 410 Gone (wRTC bridge disabled) |
 | POST | `/api/bridge/void` | Void bridge transfer |
 | POST | `/api/lock/release` | Release lock |
 | POST | `/api/lock/forfeit` | Forfeit lock |
